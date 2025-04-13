@@ -80,6 +80,10 @@
   text-transform: uppercase;
 }
 
+tile.base {
+  color:#90ee90
+}
+
 /* .tile.hidden {
   background-color: #333;
 }

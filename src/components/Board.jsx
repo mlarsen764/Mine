@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import "../Board.css";
 import playerStatus from "../hooks/usePlayer";
-import { mineGold } from "../utility/Actions";
+import { mineGold, visitBlacksmith, recruitAlly } from "../utility/Actions";
 
 const BOARD_WIDTH = 5;
 const BOARD_HEIGHT = 6;
@@ -31,7 +31,7 @@ function Board() {
                 const isStart = row === 0 && col === 2;
                 return {
                     revealed: isStart,
-                    type: isStart ? getRandomTileType() : "unknown",
+                    type: isStart ? "base" : "unknown",
                 };
             })
         )
@@ -87,10 +87,6 @@ function Board() {
         }
     };
 
-    const handleBlacksmith = () => {
-        console.log("You visited the blacksmith");
-    };
-
     const handleBuilder = () => {
         console.log("You started building");
     };
@@ -111,8 +107,13 @@ function Board() {
                                         key={colIndex}
                                         className={`tile ${tile.revealed ? tile.type : "hidden"}`}
                                         style={{
-                                            color: isPlayerHere ? "blue" : "inherit",
-                                        }}
+                                            color:
+                                              isPlayerHere
+                                                ? "blue"
+                                                : tile.revealed && tile.type === "base"
+                                                ? "green"
+                                                : "inherit",
+                                          }}
                                         onClick={() => handleTileClick(rowIndex, colIndex)}
                                     >
                                         {tile.revealed ? tile.type.toUpperCase() : "?"}
@@ -134,6 +135,13 @@ function Board() {
                     </div>
     
                     <div className="contextual-actions">
+                        {getCurrentTile().type === "base" && (
+                            <button onClick={() =>
+                                recruitAlly({ playerAllies, playerGold, addAlly, addGold, setActionLog })
+                            }>
+                                Recruit Ally for {playerAllies.length > 0 ? `${playerAllies.length} gold` : "Free"}
+                            </button>
+                        )}
                         {getCurrentTile().type === "mine" && (
                             <button onClick={() =>
                                 mineGold({currentPosition, tiles, setTiles, addGold, setActionLog,})
@@ -142,8 +150,10 @@ function Board() {
                             </button>
                         )}
                         {getCurrentTile().type === "blacksmith" && (
-                            <button onClick={handleBlacksmith}>
-                                Visit Blacksmith
+                            <button onClick={() =>
+                                visitBlacksmith({ playerGold, addGold, addItem, setActionLog })
+                            }>
+                                Buy Item - 2 gold
                             </button>
                         )}
                         {getCurrentTile().type === "builder" && (
