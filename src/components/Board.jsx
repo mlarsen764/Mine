@@ -73,6 +73,20 @@ function Board() {
         return tiles[currentPosition.row][currentPosition.col];
     };
 
+    const isOrthogonal = (row, col) => {
+        return (Math.abs(currentPosition.row - row) === 1 && currentPosition.col === col) ||
+               (Math.abs(currentPosition.col - col) === 1 && currentPosition.row === row);
+    };
+
+    const handleTileClick = (row, col) => {
+        if (isOrthogonal(row, col)) {
+            setCurrentPosition({ row, col });
+            revealTile(row, col);
+        } else {
+            setActionLog((prevLog) => [...prevLog, "Please select a tile orthogonal to your current position"])
+        }
+    };
+
     const handleBlacksmith = () => {
         console.log("You visited the blacksmith");
     };
@@ -99,6 +113,7 @@ function Board() {
                                         style={{
                                             color: isPlayerHere ? "blue" : "inherit",
                                         }}
+                                        onClick={() => handleTileClick(rowIndex, colIndex)}
                                     >
                                         {tile.revealed ? tile.type.toUpperCase() : "?"}
                                     </div>
