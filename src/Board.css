@@ -1,0 +1,127 @@
+.game-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    flex-direction: column;
+    padding: 20px;
+  }
+
+.main-content {
+  display: flex;
+  gap: 40px;
+}
+
+.board {
+  display: grid;
+  grid-template-rows: repeat(5, 50px);
+  gap: 50px;
+  padding: 50px;
+  /* background-color: #222; */
+}
+
+.side-panel {
+  padding: 20px;
+  width: 40vw;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.contextual-actions {
+  margin-top: 10px;
+  min-height: 60px;
+}
+
+.contextual-actions button {
+  margin: 5px;
+}
+
+.action-log {
+  height: 20vw;
+  width: 600px;
+  overflow-y: auto;
+  background-color: #f2f2f2;
+  border: 1px solid #aaa;
+  padding: 10px;
+  font-size: 14px;
+  overflow-y: auto;
+}
+
+.player-status {
+  padding: 10px;
+  width: 100%;
+  font-size: 14px;
+}
+
+.row {
+  display: flex;
+  gap: 5px;
+}
+
+.tile.player {
+  color: #00aaff;
+  font-weight: bold;
+}
+
+.tile {
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
+  cursor: pointer;
+  border: 2px solid #444;
+  text-transform: uppercase;
+}
+
+/* .tile.hidden {
+  background-color: #333;
+}
+
+.tile.gold {
+  background-color: gold;
+}
+
+.tile.enemy {
+  background-color: red;
+}
+
+.tile.mine {
+  background-color: gray;
+}
+
+.tile.shop {
+  background-color: blue;
+}
+
+.tile.empty {
+  background-color: black;
+} */
+
+.controls {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  padding: 10px;
+  font-size: 16px;
+  margin-left: 10px;
+  cursor: pointer;
+  border: none;
+  background-color: #444;
+  color: white;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #555;
+}
