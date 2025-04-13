@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import "../Board.css";
 import playerStatus from "../hooks/usePlayer";
-import { mineGold, visitBlacksmith, recruitAlly } from "../utility/Actions";
+import { mineGold, visitBlacksmith, recruitAlly, buildTunnel } from "../utility/Actions";
 
 const BOARD_WIDTH = 5;
 const BOARD_HEIGHT = 6;
 
 function Board() {
     const actionLogRef = useRef(null);
+    const [tunnelTiles, setTunnelTiles] = useState([]);
     const [actionLog, setActionLog] = useState([]);
     const { playerGold, playerAllies, playerItems, addGold, addAlly, addItem } = playerStatus();
     
@@ -73,22 +74,28 @@ function Board() {
         return tiles[currentPosition.row][currentPosition.col];
     };
 
-    const isOrthogonal = (row, col) => {
-        return (Math.abs(currentPosition.row - row) === 1 && currentPosition.col === col) ||
-               (Math.abs(currentPosition.col - col) === 1 && currentPosition.row === row);
-    };
+    const isAdjacent = (targetRow, targetCol) => {
+        const { row: playerRow, col: playerCol } = currentPosition;
+        const playerTile = tiles[playerRow][playerCol];
+        const targetTile = tiles[targetRow][targetCol];
+      
+        const isOrthogonal =
+          (targetRow === playerRow && Math.abs(targetCol - playerCol) === 1) ||
+          (targetCol === playerCol && Math.abs(targetRow - playerRow) === 1);
+      
+        const playerIsConnected = playerTile.type === "base" || playerTile.type === "tunnel";
+        const targetIsConnected = targetTile.type === "base" || targetTile.type === "tunnel";
+      
+        return isOrthogonal || (playerIsConnected && targetIsConnected);
+      };
 
     const handleTileClick = (row, col) => {
-        if (isOrthogonal(row, col)) {
+        if (isAdjacent(row, col)) {
             setCurrentPosition({ row, col });
             revealTile(row, col);
         } else {
             setActionLog((prevLog) => [...prevLog, "Please select a tile orthogonal to your current position"])
         }
-    };
-
-    const handleBuilder = () => {
-        console.log("You started building");
     };
 
     return (
@@ -104,16 +111,8 @@ function Board() {
     
                                 return (
                                     <div
-                                        key={colIndex}
-                                        className={`tile ${tile.revealed ? tile.type : "hidden"}`}
-                                        style={{
-                                            color:
-                                              isPlayerHere
-                                                ? "blue"
-                                                : tile.revealed && tile.type === "base"
-                                                ? "green"
-                                                : "inherit",
-                                          }}
+                                        key={`${rowIndex}-${colIndex}`}
+                                        className={`tile ${tile.revealed ? tile.type : "hidden"} ${isPlayerHere ? "player-here" : ""}`}
                                         onClick={() => handleTileClick(rowIndex, colIndex)}
                                     >
                                         {tile.revealed ? tile.type.toUpperCase() : "?"}
@@ -139,7 +138,7 @@ function Board() {
                             <button onClick={() =>
                                 recruitAlly({ playerAllies, playerGold, addAlly, addGold, setActionLog })
                             }>
-                                Recruit Ally for {playerAllies.length > 0 ? `${playerAllies.length} gold` : "Free"}
+                                Recruit Ally - {playerAllies.length > 0 ? `${playerAllies.length} gold` : "Free"}
                             </button>
                         )}
                         {getCurrentTile().type === "mine" && (
@@ -157,7 +156,20 @@ function Board() {
                             </button>
                         )}
                         {getCurrentTile().type === "builder" && (
-                            <button onClick={handleBuilder}>Build</button>
+                            <button onClick={() =>
+                                buildTunnel({
+                                    currentPosition,
+                                    tiles,
+                                    setTiles,
+                                    tunnelTiles,
+                                    setTunnelTiles,
+                                    playerGold,
+                                    addGold,
+                                    setActionLog,
+                                })
+                            }>
+                                Build Tunnel - 1 gold
+                            </button>
                         )}
                     </div>
 

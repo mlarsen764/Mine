@@ -56,3 +56,43 @@ export function recruitAlly({ playerAllies, playerGold, addAlly, addGold, setAct
         setActionLog((prev) => [...prev, `You need ${cost} gold to recruit another ally`]);
     }
 }
+
+export function buildTunnel({
+    currentPosition,
+    tiles,
+    setTiles,
+    tunnelTiles,
+    setTunnelTiles,
+    playerGold,
+    addGold,
+    setActionLog,
+
+}) {
+    const { row, col } = currentPosition;
+    const tile = tiles[row][col]
+    
+    if (tile.type !== "builder") return;
+
+    const cost = 1;
+    if (playerGold < cost) {
+        setActionLog((prev) => [
+            ...prev,
+            `You need ${cost} gold to build a tunnel`,
+        ]);
+        return;
+    }
+
+    addGold(-cost);
+
+    const newTunnel = { row, col };
+    const updatedTunnels = [...tunnelTiles, newTunnel];
+    setTunnelTiles(updatedTunnels);
+
+    const updatedTiles = tiles.map((r, rIdx) =>
+        r.map((t, cIdx) =>
+            rIdx === row && cIdx === col ? {...t, type: "tunnel" } : t
+        )
+    );
+    setTiles(updatedTiles);
+    setActionLog((prev) => [...prev, `Tunnel built! This space is now considered adjacent to the base and other tunnels`])
+}
