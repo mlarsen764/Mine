@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const playerStatus = () => {
+const usePlayer = () => {
     const [playerGold, setPlayerGold] = useState(0);
     const [playerAllies, setPlayerAllies] = useState([]);
     const [playerItems, setPlayerItems] = useState([]);
@@ -17,7 +17,7 @@ const playerStatus = () => {
         setPlayerItems((prevItems) => [...prevItems, itemName]);
     };
 
-    return { playerGold, playerAllies, playerItems, addGold, addAlly, addItem };
+    return { playerGold, playerAllies, playerItems, addGold, addAlly, addItem, setPlayerGold, setPlayerAllies, setPlayerItems };
 };
 
-export default playerStatus;
+export default usePlayer;

@@ -10,7 +10,6 @@
 
 .main-content {
   display: flex;
-  gap: 40px;
 }
 
 .board {
@@ -40,8 +39,8 @@
 }
 
 .action-log {
-  height: 20vw;
-  width: 600px;
+  height: 250px;
+  width: 500px;
   overflow-y: auto;
   background-color: #f2f2f2;
   border: 1px solid #aaa;
@@ -58,7 +57,7 @@
 
 .row {
   display: flex;
-  gap: 5px;
+  gap: 1px;
 }
 
 .tile.player {
@@ -90,6 +89,18 @@
 
 .tile.player-here {
   color: blue !important;
+}
+
+.tier-1 {
+  background-color: white;
+}
+
+.tier-2 {
+  background-color: #ddd;
+}
+
+.tier-3 {
+  background-color: #aaa;
 }
 
 /* .tile.hidden {

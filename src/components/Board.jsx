@@ -1,16 +1,17 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "../Board.css";
-import playerStatus from "../hooks/usePlayer";
+import usePlayer from "../hooks/usePlayer";
 import { mineGold, visitBlacksmith, recruitAlly, buildTunnel } from "../utility/Actions";
+import { supabase } from "../supabaseClient";
 
 const BOARD_WIDTH = 5;
 const BOARD_HEIGHT = 6;
 
-function Board() {
+function Board({ user }) {
     const actionLogRef = useRef(null);
     const [tunnelTiles, setTunnelTiles] = useState([]);
     const [actionLog, setActionLog] = useState([]);
-    const { playerGold, playerAllies, playerItems, addGold, addAlly, addItem } = playerStatus();
+    const { playerGold, playerAllies, playerItems, addGold, addAlly, addItem, setPlayerGold, setPlayerAllies, setPlayerItems } = usePlayer();
     
     useEffect(() => {
         if (actionLogRef.current) {
@@ -18,25 +19,86 @@ function Board() {
         }
     }, [actionLog]);
     
-    const getRandomTileType = () => {
-        const types = ["mine", "blacksmith", "builder", "empty"];
-        return types[Math.floor(Math.random() * types.length)];
+    // Shuffles tiles for game board
+    const shuffle = (array) => {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+        }
+        return shuffled;
     };
 
+    const getTierClass = (rowIndex) => {
+        if (rowIndex <= 1) return "tier-1";
+        if (rowIndex <= 3) return "tier-2";
+        return "tier-3";
+    }
+
     // Initialize board with all tiles hidden
-    const [tiles, setTiles] = useState(
-        Array(BOARD_HEIGHT)
-        .fill()
-        .map((_, row) =>
-            Array(BOARD_WIDTH).fill().map((_, col) => {
-                const isStart = row === 0 && col === 2;
-                return {
-                    revealed: isStart,
-                    type: isStart ? "base" : "unknown",
-                };
-            })
-        )
-    );
+    // const [tiles, setTiles] = useState(
+    //     Array(BOARD_HEIGHT)
+    //     .fill()
+    //     .map((_, row) =>
+    //         Array(BOARD_WIDTH).fill().map((_, col) => {
+    //             const isStart = row === 0 && col === 2;
+    //             return {
+    //                 revealed: isStart,
+    //                 type: isStart ? "base" : "unknown",
+    //             };
+    //         })
+    //     )
+    // );
+
+    const generateBoard = () => {
+        const tier1 = shuffle([
+          ...Array(2).fill("blacksmith"),
+          ...Array(3).fill("mine"),
+          ...Array(2).fill("builder"),
+          ...Array(2).fill("empty"),
+        ]);
+      
+        const tier2 = shuffle([
+          ...Array(2).fill("blacksmith"),
+          ...Array(5).fill("mine"),
+          ...Array(2).fill("builder"),
+          "empty",
+        ]);
+      
+        const tier3 = shuffle([
+          ...Array(2).fill("blacksmith"),
+          ...Array(6).fill("mine"),
+          ...Array(2).fill("builder"),
+        ]);
+      
+        let board = [];
+        for (let row = 0; row < BOARD_HEIGHT; row++) {
+          board.push([]);
+          for (let col = 0; col < BOARD_WIDTH; col++) {
+            const isBase = row === 0 && col === 2;
+            let type = "unknown";
+      
+            if (isBase) {
+              type = "base";
+            } else if (row <= 1) {
+              type = tier1.pop();
+            } else if (row <= 3) {
+              type = tier2.pop();
+            } else {
+              type = tier3.pop();
+            }
+      
+            board[row].push({
+              revealed: isBase,
+              type: isBase ? "base" : type,
+            });
+          }
+        }
+      
+        return board;
+      };
+      
+    const [tiles, setTiles] = useState(generateBoard());
 
     const [currentPosition, setCurrentPosition] = useState({ row: 0, col: 2});
 
@@ -48,7 +110,7 @@ function Board() {
           prevTiles.map((r, rIdx) =>
             r.map((tile, cIdx) =>
               rIdx === row && cIdx === col
-                ? { ...tile, revealed: true, type: getRandomTileType() }
+                ? { ...tile, revealed: true }
                 : tile
             )
           )
@@ -94,7 +156,54 @@ function Board() {
             setCurrentPosition({ row, col });
             revealTile(row, col);
         } else {
-            setActionLog((prevLog) => [...prevLog, "Please select a tile orthogonal to your current position"])
+            setActionLog((prevLog) => [...prevLog, "Please select a tile adjacent to your current position"])
+        }
+    };
+
+    const handleSaveGame = async () => {
+        const { data, error } = await supabase
+            .from('game_state')  // Using the correct table name
+            .upsert({
+                user_id: user.id,  // Save the user ID to ensure the game belongs to the user
+                board: JSON.stringify(tiles),  // Save the board state
+                position: JSON.stringify(currentPosition),  // Save the player's position
+                gold: playerGold,  // Save the player's gold
+                allies: JSON.stringify(playerAllies),  // Save the player's allies
+                items: JSON.stringify(playerItems),  // Save the player's items
+            })
+            .eq('user_id', user.id);  // Ensure the correct user ID is used for the upsert operation
+    
+        if (error) {
+            console.error("Error saving game:", error);
+            setActionLog((prevLog) => [...prevLog, "Error saving game."]);
+        } else {
+            setActionLog((prevLog) => [...prevLog, "Game saved successfully!"]);
+        }
+    };
+
+    const handleLoadGame = async () => {
+        const { data, error } = await supabase
+            .from('game_state')  // Using the correct table name
+            .select('board, position, gold, allies, items')
+            .eq('user_id', user.id)  // Fetch data only for the current user
+            .order('created_at', { ascending: false })  // Order by created_at, most recent first
+            .limit(1);  // Only fetch the most recent game state
+    
+        if (error) {
+            console.error("Error loading game:", error);
+            setActionLog((prevLog) => [...prevLog, "Error loading game."]);
+        } else if (data && data.length > 0) {
+            // Handle the case when the game data is found
+            const gameData = data[0];  // Take the first (most recent) game state
+            setTiles(JSON.parse(gameData.board));  // Deserialize the board state
+            setCurrentPosition(JSON.parse(gameData.position));  // Deserialize the position
+            setPlayerGold(gameData.gold);  // Set the player's gold
+            setPlayerAllies(JSON.parse(gameData.allies));  // Deserialize allies
+            setPlayerItems(JSON.parse(gameData.items));  // Deserialize items
+    
+            setActionLog((prevLog) => [...prevLog, "Game loaded successfully!"]);
+        } else {
+            setActionLog((prevLog) => [...prevLog, "No saved game found for this user."]);
         }
     };
 
@@ -112,7 +221,8 @@ function Board() {
                                 return (
                                     <div
                                         key={`${rowIndex}-${colIndex}`}
-                                        className={`tile ${tile.revealed ? tile.type : "hidden"} ${isPlayerHere ? "player-here" : ""}`}
+                                        className={`tile ${tile.revealed ? tile.type : "hidden"} ${isPlayerHere ? "player-here" : ""} ${getTierClass(rowIndex)}`}
+
                                         onClick={() => handleTileClick(rowIndex, colIndex)}
                                     >
                                         {tile.revealed ? tile.type.toUpperCase() : "?"}
@@ -130,6 +240,9 @@ function Board() {
                             <button onClick={() => movePlayer("down")}>Down</button>
                             <button onClick={() => movePlayer("left")}>Left</button>
                             <button onClick={() => movePlayer("right")}>Right</button>
+                            <button onClick={handleSaveGame}>Save</button>
+                            <button onClick={handleLoadGame}>Load</button>
+                            <p>(or tap on an adjacent space to move)</p>
                         </div>
                     </div>
     
